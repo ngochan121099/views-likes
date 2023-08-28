@@ -93,10 +93,6 @@ const getBlog = async ({ id }: BlogId) => {
           },
         },
       ],
-      {
-        page: 1,
-        limit: 10,
-      }
     );
 
     if (!findBlog) {
