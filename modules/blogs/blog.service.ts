@@ -56,44 +56,42 @@ const getBlogs = async () => {
 const getBlog = async ({ id }: BlogId) => {
   try {
     const likesCount = await LikedBlogCollection.countDocuments({ blogId: id });
-    const viewsCount = await BlogCollection.findByIdAndUpdate(
+    const updateCount = await BlogCollection.findByIdAndUpdate(
       { _id: new mongoose.Types.ObjectId(id) },
       { $inc: { views: 1 }, likes: likesCount },
       { new: true }
     );
 
-    const findBlog = BlogCollection.aggregate(
-      [
-        {
-          $match: { _id: new mongoose.Types.ObjectId(id) },
+    const findBlog = BlogCollection.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(id) },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'author',
         },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'author',
-          },
+      },
+      {
+        $set: {
+          views: updateCount.views,
+          likes: updateCount.likes,
         },
-        {
-          $set: {
-            views: viewsCount.views,
-            likes: viewsCount.likes,
-          },
+      },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          views: 1,
+          likes: 1,
+          is_deleted: 1,
+          'author.username': 1,
+          'author._id': 1,
         },
-        {
-          $project: {
-            title: 1,
-            description: 1,
-            views: 1,
-            likes: 1,
-            is_deleted: 1,
-            'author.username': 1,
-            'author._id': 1,
-          },
-        },
-      ],
-    );
+      },
+    ]);
 
     if (!findBlog) {
       return LOGICAL_ERRORS.BLOG_NOT_FOUND;
